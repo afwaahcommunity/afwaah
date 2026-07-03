@@ -6,6 +6,7 @@ export interface RoomSummary {
   createdAt: Date;
   createdByUserId: string;
   description: string | null;
+  expiresAt: Date | null;
   id: string;
   lastMessageAt: Date | null;
   messageCount: number;

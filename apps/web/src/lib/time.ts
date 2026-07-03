@@ -16,3 +16,21 @@ export function timeAgo(iso: string): string {
 export function shortTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+export function millisUntil(iso?: string | null): number | null {
+  if (!iso) return null;
+  const timestamp = new Date(iso).getTime();
+  if (Number.isNaN(timestamp)) return null;
+  return timestamp - Date.now();
+}
+
+export function formatTimeLeft(ms: number): string {
+  const safeMs = Math.max(0, ms);
+  const totalSeconds = Math.ceil(safeMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}

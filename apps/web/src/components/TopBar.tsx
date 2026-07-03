@@ -33,10 +33,11 @@ export function TopBar({
         <div className="flex items-center gap-1">
           <Link
             href="/verify-location"
-            className={`hidden sm:inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs ${locColor} hover:bg-accent transition-colors`}
+            aria-label={`Location status: ${locLabel}`}
+            className={`inline-flex max-w-[46vw] items-center gap-1.5 rounded-md px-1.5 py-1.5 text-xs ${locColor} transition-colors hover:bg-accent sm:max-w-[10rem] sm:px-2`}
           >
-            <MapPin className="h-3.5 w-3.5" />
-            <span className="truncate max-w-[10rem]">{locLabel}</span>
+            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{locLabel}</span>
           </Link>
           <ThemeToggle />
           <Link

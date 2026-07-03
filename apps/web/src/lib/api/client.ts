@@ -199,6 +199,8 @@ function mapRoom(
     createdBy,
     createdByMe: Boolean(createdBy && createdBy === session?.userId),
     description: room.description ?? undefined,
+    expiresAt:
+      "expiresAt" in room && room.expiresAt ? toIso(room.expiresAt) : null,
     id: room.id,
     lastActivityAt: toIso(
       "lastActivityAt" in room
@@ -535,6 +537,7 @@ export const api = {
             createdBy: "me",
             createdByMe: true,
             description: input.description,
+            expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
             id: `r_${Math.random().toString(36).slice(2, 8)}`,
             lastActivityAt: new Date().toISOString(),
             name: input.name,

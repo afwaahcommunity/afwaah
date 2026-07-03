@@ -61,6 +61,7 @@ Not included:
 0013_expand_geofence_radius.sql   Larger geofence radius precision
 0014_state_geofence_radius.sql    Admin-configurable geofence radius
 0015_remove_seed_rooms.sql        Removes old demo rooms from existing local databases
+0016_room_expiry_ttl.sql          Two-hour room TTL default for automatic cleanup
 ```
 
 Run them from the repository root:

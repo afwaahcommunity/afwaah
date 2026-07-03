@@ -10,13 +10,19 @@ import { ReportDialog } from "./ReportDialog";
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
 import { LeaveRoomDialog } from "./LeaveRoomDialog";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { joinRoom } from "@/lib/realtime/client";
 import { api } from "@/lib/api/client";
-import { ArrowLeft, Share2, Users } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Share2, Timer, Users } from "lucide-react";
+import { toast } from "sonner";
 import type { AnonSession, Room } from "@/lib/types";
+import { formatTimeLeft } from "@/lib/time";
+
+const ROOM_EXPIRY_WARNING_MS = 15 * 60 * 1000;
 
 export function ChatRoom({ room, session }: { room: Room; session: AnonSession }) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [typing, setTyping] = useState<TypingUser[]>([]);
   const [presence, setPresence] = useState<Presence[]>([]);
@@ -25,13 +31,35 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
   const [reportTarget, setReportTarget] = useState<Message | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const channelRef = useRef<ReturnType<typeof joinRoom> | null>(null);
+  const expiryHandledRef = useRef(false);
 
 
   useEffect(() => {
+    let active = true;
+    const initialExpiresAtMs = room.expiresAt
+      ? new Date(room.expiresAt).getTime()
+      : null;
+    const expiredOnLoad =
+      initialExpiresAtMs !== null &&
+      !Number.isNaN(initialExpiresAtMs) &&
+      initialExpiresAtMs <= Date.now();
+
+    if (expiredOnLoad) {
+      setMessages([]);
+      setTyping([]);
+      setPresence([]);
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
     setLoading(true);
     api.messages.list(room.id).then((m) => {
+      if (!active) return;
       // Remap mock "me" messages to the current session identity so ownership
       // is determined by userId, never by display name.
       const remapped = m.map((msg) =>
@@ -76,15 +104,42 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         }),
       ),
     );
-    return () => { u1(); u2(); u3(); u4(); ch.leave(); };
-  }, [room.id, session.token, session.userId, session.displayName, session.displayColor]);
+    return () => { active = false; u1(); u2(); u3(); u4(); ch.leave(); };
+  }, [room.id, room.expiresAt, session.token, session.userId, session.displayName, session.displayColor]);
+
+  useEffect(() => {
+    if (!room.expiresAt) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [room.expiresAt]);
+
+  const expiresAtMs = room.expiresAt ? new Date(room.expiresAt).getTime() : null;
+  const msLeft =
+    expiresAtMs !== null && !Number.isNaN(expiresAtMs) ? expiresAtMs - now : null;
+  const expiresSoon =
+    msLeft !== null && msLeft > 0 && msLeft <= ROOM_EXPIRY_WARNING_MS;
+  const roomExpired = msLeft !== null && msLeft <= 0;
+
+  useEffect(() => {
+    if (!roomExpired || expiryHandledRef.current) return;
+    expiryHandledRef.current = true;
+    setMessages([]);
+    channelRef.current?.leave();
+    toast.info("Room expired. Its data is being removed.");
+
+    const timer = window.setTimeout(() => router.replace("/rooms"), 1200);
+    return () => window.clearTimeout(timer);
+  }, [roomExpired, router]);
 
   const canWrite = useMemo(() => {
+    if (roomExpired) return false;
     if (session.ban && (session.ban.kind === "hard" || session.ban.kind === "read_only" || session.ban.kind === "room_ban" || session.ban.kind === "quarantine")) return false;
     return session.writeAccess.kind === "allowed";
-  }, [session]);
+  }, [roomExpired, session]);
 
-  const disabledReason = session.ban
+  const disabledReason = roomExpired
+    ? "This room has expired."
+    : session.ban
     ? "You can't send messages while restricted."
     : session.writeAccess.kind === "off_campus"
     ? "You're off campus — reading only."
@@ -93,6 +148,11 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
     : undefined;
 
   const send = async (content: string) => {
+    if (roomExpired) {
+      toast.error("This room has expired.");
+      return;
+    }
+
     const sent = channelRef.current
       ? await channelRef.current.sendMessage(content)
       : (await api.messages.send({ roomId: room.id, content }),
@@ -123,6 +183,11 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
   };
 
   const handleReact = async (messageId: string, emoji: string) => {
+    if (roomExpired) {
+      toast.error("This room has expired.");
+      return;
+    }
+
     const shouldRemove = messages
       .find((message) => message.id === messageId)
       ?.myReactions.includes(emoji);
@@ -214,6 +279,23 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
       {(session.ban || session.writeAccess.kind !== "allowed") && (
         <div className="border-b border-border px-4 py-2.5">
           <AccessStateBanner ban={session.ban} write={session.writeAccess} />
+        </div>
+      )}
+
+      {(expiresSoon || roomExpired) && (
+        <div className="border-b border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-200">
+          <div className="mx-auto flex max-w-5xl items-center gap-2">
+            {roomExpired ? (
+              <AlertTriangle className="h-4 w-4" />
+            ) : (
+              <Timer className="h-4 w-4" />
+            )}
+            <span>
+              {roomExpired
+                ? "This room has expired. Messages and room data are being deleted."
+                : `This room expires in ${formatTimeLeft(msLeft ?? 0)}. Messages and room data will be deleted.`}
+            </span>
+          </div>
         </div>
       )}
 

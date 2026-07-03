@@ -37,6 +37,7 @@ export interface Room {
   id: string;
   name: string;
   description?: string;
+  expiresAt?: string | null;
   visibility: "public" | "private";
   participantCount: number;
   lastActivityAt: string;

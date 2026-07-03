@@ -21,6 +21,8 @@ import {
 import { WriteGuardService } from "./write-guard.service";
 
 const MAX_ACTIVE_CREATED_ROOMS_PER_USER = 3;
+export const ROOM_LIFETIME_MS = 2 * 60 * 60 * 1000;
+export const ROOM_EXPIRY_WARNING_MS = 15 * 60 * 1000;
 
 export class RoomService {
   private readonly rateLimitCache: RateLimitCache;
@@ -76,10 +78,11 @@ export class RoomService {
     }
 
     const slug = await this.createAvailableSlug(input.slug ?? name);
+    const expiresAt = new Date(Date.now() + ROOM_LIFETIME_MS);
     const room = await this.roomRepo.create(
       userId,
       sessionId,
-      { ...input, name, roomType: input.roomType ?? "public" },
+      { ...input, expiresAt, name, roomType: input.roomType ?? "public" },
       slug,
       input.roomType === "private" ? generateInviteCode() : undefined,
     );
@@ -281,6 +284,29 @@ export class RoomService {
     };
   }
 
+  async purgeExpiredRooms(
+    limit = 100,
+  ): Promise<Result<{ purgedCount: number; roomIds: string[] }>> {
+    try {
+      const safeLimit = clampLimit(limit, 1, 500);
+      const purgedRooms = await this.roomRepo.purgeExpiredRooms(safeLimit);
+      await Promise.all(
+        purgedRooms.map((room) => this.roomCache.clearRoom(room.id)),
+      );
+
+      return ok({
+        purgedCount: purgedRooms.length,
+        roomIds: purgedRooms.map((room) => room.id),
+      });
+    } catch (error) {
+      return err(
+        createError("INTERNAL_ERROR", "Failed to purge expired rooms.", {
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  }
+
   async regenerateInviteCode(
     roomId: string,
     userId: string,
@@ -455,9 +481,6 @@ function validateCreateRoomInput(input: CreateRoomInput): string | null {
   ) {
     return "maxParticipants must be between 2 and 5000.";
   }
-  if (input.expiresAt && input.expiresAt <= new Date()) {
-    return "Room expiry must be in the future.";
-  }
   if (input.description && input.description.length > 500) {
     return "Room description is too long.";
   }
@@ -476,6 +499,7 @@ function mapRoomSummary(room: {
   createdAt: Date;
   createdByUserId: string;
   description: string | null;
+  expiresAt: Date | null;
   id: string;
   lastMessageAt: Date | null;
   messageCount: number;
@@ -492,6 +516,7 @@ function mapRoomSummary(room: {
     createdAt: room.createdAt,
     createdByUserId: room.createdByUserId,
     description: room.description,
+    expiresAt: room.expiresAt,
     id: room.id,
     lastMessageAt: room.lastMessageAt,
     messageCount: room.messageCount,
@@ -507,7 +532,6 @@ function mapRoomSummary(room: {
 function mapRoomDetails(
   room: Parameters<typeof mapRoomSummary>[0] & {
     createdByUserId: string;
-    expiresAt: Date | null;
     inviteCode: string | null;
     inviteCodeExpiresAt: Date | null;
     maxParticipants: number | null;

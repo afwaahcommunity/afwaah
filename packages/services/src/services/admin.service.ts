@@ -212,6 +212,7 @@ function mapAdminRoom(room: {
   createdAt: Date;
   createdByUserId: string;
   description: string | null;
+  expiresAt: Date | null;
   id: string;
   lastMessageAt: Date | null;
   messageCount: number;
@@ -228,6 +229,7 @@ function mapAdminRoom(room: {
     createdAt: room.createdAt,
     createdByUserId: room.createdByUserId,
     description: room.description,
+    expiresAt: room.expiresAt,
     id: room.id,
     lastActivityAt: room.lastMessageAt ?? room.createdAt,
     lastMessageAt: room.lastMessageAt,

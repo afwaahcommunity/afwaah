@@ -3,11 +3,13 @@ import { createServer } from "node:http";
 import { createApp } from "./app";
 import { closeApiClients, createApiClients } from "./clients";
 import { loadEnv } from "./env";
+import { startRoomExpiryCleanup } from "./room-expiry-cleanup";
 
 const env = loadEnv();
 const clients = createApiClients(env);
 const app = createApp({ clients, env });
 const server = createServer(app);
+const roomExpiryCleanup = startRoomExpiryCleanup(clients);
 let shutdownStarted = false;
 
 server.listen(env.PORT, env.HOST, () => {
@@ -27,6 +29,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   console.log(`Received ${signal}; shutting down API server.`);
 
   try {
+    roomExpiryCleanup.stop();
     await closeServer();
     await closeApiClients(clients);
   } catch (error) {

@@ -16,6 +16,7 @@ export const roomSummarySchema = z.object({
   createdAt: timestampSchema,
   createdByUserId: uuidSchema,
   description: z.string().nullable(),
+  expiresAt: timestampSchema.nullable(),
   id: uuidSchema,
   lastMessageAt: timestampSchema.nullable(),
   messageCount: z.number().int().min(0),
@@ -28,7 +29,6 @@ export const roomSummarySchema = z.object({
 });
 
 export const roomDetailsSchema = roomSummarySchema.extend({
-  expiresAt: timestampSchema.nullable(),
   inviteCode: z.string().nullable(),
   inviteCodeExpiresAt: timestampSchema.nullable(),
   maxParticipants: z.number().int().nullable(),

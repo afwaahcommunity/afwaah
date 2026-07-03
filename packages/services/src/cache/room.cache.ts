@@ -47,6 +47,7 @@ export class RoomCache {
       createdAt: new Date(data.createdAt ?? Date.now()),
       createdByUserId: data.createdByUserId ?? "",
       description: data.description || null,
+      expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
       id: data.id,
       lastMessageAt: data.lastMessageAt ? new Date(data.lastMessageAt) : null,
       messageCount: Number(data.messageCount ?? 0),
@@ -64,6 +65,16 @@ export class RoomCache {
       redisKeys.recentRoomMessages(roomId),
       0,
       limit - 1,
+    );
+  }
+
+  async clearRoom(roomId: string): Promise<void> {
+    await this.redis.del(
+      redisKeys.recentRoomMessages(roomId),
+      redisKeys.roomMetadata(roomId),
+      redisKeys.roomPresence(roomId),
+      redisKeys.roomPresenceCount(roomId),
+      redisKeys.typing(roomId),
     );
   }
 
@@ -100,6 +111,7 @@ export class RoomCache {
         createdAt: room.createdAt.toISOString(),
         createdByUserId: room.createdByUserId,
         description: room.description ?? "",
+        expiresAt: room.expiresAt?.toISOString() ?? "",
         id: room.id,
         lastMessageAt: room.lastMessageAt?.toISOString() ?? "",
         messageCount: String(room.messageCount),

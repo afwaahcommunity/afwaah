@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Message } from "@/lib/types";
 import { shortTime } from "@/lib/time";
 import { MoreHorizontal, Flag, Trash2, Smile } from "lucide-react";
@@ -22,21 +22,32 @@ export function MessageItem({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reactorOpen, setReactorOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const react = (emoji: string) => {
+    setActionsOpen(false);
+    setMenuOpen(false);
     setReactorOpen(false);
     onReact?.(message.id, emoji);
   };
   const report = () => {
+    setActionsOpen(false);
+    setReactorOpen(false);
     setMenuOpen(false);
     onReport?.(message);
   };
   const remove = () => {
+    setActionsOpen(false);
+    setReactorOpen(false);
     setMenuOpen(false);
     onDelete?.(message);
   };
 
-
+  useEffect(() => {
+    if (!actionsOpen || menuOpen || reactorOpen) return;
+    const timer = window.setTimeout(() => setActionsOpen(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [actionsOpen, menuOpen, reactorOpen]);
 
   if (message.deleted) {
     return (
@@ -56,9 +67,15 @@ export function MessageItem({
     />
   );
   const avatarSpacer = <div className="w-6 flex-shrink-0" />;
+  const showActions = actionsOpen || menuOpen || reactorOpen;
 
   return (
     <div
+      onPointerDown={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest("button,a,input,textarea")) return;
+        setActionsOpen(true);
+      }}
       className={
         "group relative flex gap-3 px-4 animate-msg-in " +
         (sameAuthor ? "py-0.5 " : "pt-3 pb-0.5 ") +
@@ -98,7 +115,9 @@ export function MessageItem({
               return (
                 <button
                   key={emoji}
+                  type="button"
                   onClick={() => react(emoji)}
+                  aria-label={`React with ${emoji}`}
                   className={
                     "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs transition-colors " +
                     (mine
@@ -117,21 +136,34 @@ export function MessageItem({
 
       <div
         className={
-          "absolute top-1 flex items-center gap-0.5 rounded-md border border-border bg-popover px-0.5 py-0.5 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 " +
+          "absolute top-1 flex items-center gap-0.5 rounded-md border border-border bg-popover px-0.5 py-0.5 shadow-sm transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100 " +
+          (showActions ? "pointer-events-auto opacity-100 " : "pointer-events-none opacity-0 ") +
           (isMine ? "left-3" : "right-3")
         }
       >
         <button
-          onClick={() => setReactorOpen((v) => !v)}
-          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          type="button"
+          onClick={() => {
+            setActionsOpen(true);
+            setMenuOpen(false);
+            setReactorOpen((v) => !v);
+          }}
+          className="inline-flex h-8 w-8 touch-manipulation items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
           aria-label="react"
+          aria-expanded={reactorOpen}
         >
           <Smile className="h-3.5 w-3.5" />
         </button>
         <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          type="button"
+          onClick={() => {
+            setActionsOpen(true);
+            setReactorOpen(false);
+            setMenuOpen((v) => !v);
+          }}
+          className="inline-flex h-8 w-8 touch-manipulation items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
           aria-label="more"
+          aria-expanded={menuOpen}
         >
           <MoreHorizontal className="h-3.5 w-3.5" />
         </button>
@@ -147,8 +179,10 @@ export function MessageItem({
           {QUICK_REACTIONS.map((e) => (
             <button
               key={e}
+              type="button"
               onClick={() => react(e)}
-              className="rounded p-1 text-base hover:bg-accent"
+              className="inline-flex h-8 w-8 touch-manipulation items-center justify-center rounded text-base hover:bg-accent"
+              aria-label={`React with ${e}`}
             >
               {e}
             </button>
@@ -165,16 +199,18 @@ export function MessageItem({
         >
           {!isMine && (
             <button
+              type="button"
               onClick={report}
-              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="flex min-h-10 w-full touch-manipulation items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Flag className="h-3.5 w-3.5" /> Report
             </button>
           )}
           {isMine && (
             <button
+              type="button"
               onClick={remove}
-              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-destructive hover:bg-accent"
+              className="flex min-h-10 w-full touch-manipulation items-center gap-2 px-2.5 py-1.5 text-left text-xs text-destructive hover:bg-accent"
             >
               <Trash2 className="h-3.5 w-3.5" /> Delete
             </button>

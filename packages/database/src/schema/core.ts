@@ -181,7 +181,9 @@ export const rooms = coreSchema.table(
     allowImages: boolean("allow_images").notNull().default(true),
     allowLinks: boolean("allow_links").notNull().default(true),
     slowModeSeconds: integer("slow_mode_seconds").default(0),
-    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).default(
+      sql`NOW() + INTERVAL '2 hours'`,
+    ),
     status: varchar("status", { length: 20 }).notNull().default("active"),
     lockedReason: text("locked_reason"),
     lockedByAdminId: uuid("locked_by_admin_id"),

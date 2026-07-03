@@ -27,6 +27,11 @@ export interface ParticipantWithDisplayName {
   userId: string;
 }
 
+export interface PurgedRoom {
+  id: string;
+  name: string;
+}
+
 export class RoomRepository extends BaseRepository {
   constructor(db: DrizzleClient) {
     super(db);
@@ -263,6 +268,169 @@ export class RoomRepository extends BaseRepository {
       .limit(limit);
   }
 
+  async purgeExpiredRooms(limit = 100): Promise<PurgedRoom[]> {
+    return this.db.transaction(async (tx) => {
+      const expiredRooms = rowsFromResult<PurgedRoom>(
+        await tx.execute(
+          sql`
+            SELECT id, name
+            FROM core.rooms
+            WHERE status = 'active'
+              AND expires_at IS NOT NULL
+              AND expires_at <= NOW()
+            ORDER BY expires_at ASC
+            LIMIT ${limit}
+            FOR UPDATE SKIP LOCKED
+          `,
+        ),
+      );
+
+      if (expiredRooms.length === 0) return [];
+
+      const roomIds = expiredRooms.map((room) => room.id);
+      const roomIdsSql = uuidArraySql(roomIds);
+
+      const messageIds = rowsFromResult<{ id: string }>(
+        await tx.execute(
+          sql`
+            SELECT id
+            FROM core.messages
+            WHERE room_id = ANY(${roomIdsSql})
+          `,
+        ),
+      ).map((row) => row.id);
+      const messageIdsSql = uuidArraySql(messageIds);
+
+      const mediaIds = rowsFromResult<{ id: string }>(
+        await tx.execute(
+          sql`
+            SELECT DISTINCT id
+            FROM (
+              SELECT media_asset_id AS id
+              FROM core.messages
+              WHERE room_id = ANY(${roomIdsSql})
+                AND media_asset_id IS NOT NULL
+
+              UNION
+
+              SELECT resulting_asset_id AS id
+              FROM media.upload_tokens
+              WHERE target_room_id = ANY(${roomIdsSql})
+                AND resulting_asset_id IS NOT NULL
+            ) AS room_media
+          `,
+        ),
+      ).map((row) => row.id);
+      const mediaIdsSql = uuidArraySql(mediaIds);
+
+      const reportIds = rowsFromResult<{ id: string }>(
+        await tx.execute(
+          sql`
+            SELECT id
+            FROM moderation.reports
+            WHERE target_room_id = ANY(${roomIdsSql})
+              OR target_message_id = ANY(${messageIdsSql})
+          `,
+        ),
+      ).map((row) => row.id);
+      const reportIdsSql = uuidArraySql(reportIds);
+
+      const banIds = rowsFromResult<{ id: string }>(
+        await tx.execute(
+          sql`
+            SELECT id
+            FROM moderation.bans
+            WHERE target_room_id = ANY(${roomIdsSql})
+          `,
+        ),
+      ).map((row) => row.id);
+      const banIdsSql = uuidArraySql(banIds);
+
+      await tx.execute(
+        sql`
+          DELETE FROM admin.audit_log
+          WHERE target_room_id = ANY(${roomIdsSql})
+            OR target_message_id = ANY(${messageIdsSql})
+            OR target_report_id = ANY(${reportIdsSql})
+            OR target_ban_id = ANY(${banIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          UPDATE moderation.bans
+          SET primary_evidence_id = NULL
+          WHERE id = ANY(${banIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM moderation.ban_evidence
+          WHERE ban_id = ANY(${banIdsSql})
+            OR matched_against_ban_id = ANY(${banIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM moderation.bans
+          WHERE id = ANY(${banIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM moderation.reports
+          WHERE id = ANY(${reportIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM media.upload_tokens
+          WHERE target_room_id = ANY(${roomIdsSql})
+            OR resulting_asset_id = ANY(${mediaIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM core.message_reactions
+          WHERE message_id = ANY(${messageIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM core.messages
+          WHERE room_id = ANY(${roomIdsSql})
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM media.media_assets AS media_asset
+          WHERE media_asset.id = ANY(${mediaIdsSql})
+            AND NOT EXISTS (
+              SELECT 1
+              FROM core.messages AS message
+              WHERE message.media_asset_id = media_asset.id
+            )
+        `,
+      );
+
+      await tx.execute(
+        sql`
+          DELETE FROM core.rooms
+          WHERE id = ANY(${roomIdsSql})
+        `,
+      );
+
+      return expiredRooms;
+    });
+  }
+
   async reactivateParticipant(
     participantId: string,
   ): Promise<RoomParticipant | null> {
@@ -325,4 +493,18 @@ export class RoomRepository extends BaseRepository {
 
     return room ?? null;
   }
+}
+
+function rowsFromResult<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === "object" && "rows" in result) {
+    const rows = (result as { rows?: unknown }).rows;
+    return Array.isArray(rows) ? (rows as T[]) : [];
+  }
+  return [];
+}
+
+function uuidArraySql(ids: string[]): SQL {
+  if (ids.length === 0) return sql`ARRAY[]::uuid[]`;
+  return sql`ARRAY[${sql.join(ids.map((id) => sql`${id}`), sql`, `)}]::uuid[]`;
 }
