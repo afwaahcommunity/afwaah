@@ -1,0 +1,29 @@
+{
+  "name": "@campus-chat/database",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./redis": "./src/redis.ts",
+    "./models": "./src/models/index.ts",
+    "./schema.ts": "./schema.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check-types": "tsc --noEmit",
+    "migrate": "sh ./scripts/migrate.sh",
+    "migrate:docker": "sh ./scripts/migrate.docker.sh"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@campus-chat/typescript-config": "workspace:*",
+    "@types/pg": "^8.16.0",
+    "@types/node": "^22.15.3",
+    "typescript": "5.9.2"
+  }
+}

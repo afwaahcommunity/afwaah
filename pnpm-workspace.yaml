@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+supportedArchitectures:
+  os:
+    - darwin
+    - current
+  cpu:
+    - arm64
+    - x64
+    - current
+allowBuilds:
+  sharp: false
+ignoredBuiltDependencies:
+  - esbuild
+  - sharp

@@ -1,0 +1,23 @@
+{
+  "name": "campus-chat",
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "db:migrate": "pnpm --filter @campus-chat/database migrate:docker",
+    "db:migrate:docker": "pnpm --filter @campus-chat/database migrate:docker",
+    "db:migrate:psql": "pnpm --filter @campus-chat/database migrate",
+    "dev": "turbo dev",
+    "format": "prettier --write \"**/*.{js,json,md,ts}\" \"!codex.md\"",
+    "lint": "turbo lint"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4",
+    "turbo": "^2.7.2",
+    "typescript": "5.9.2"
+  }
+}
