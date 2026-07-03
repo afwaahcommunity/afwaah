@@ -50,6 +50,7 @@ type RoomSummaryOutput = RouterOutputs["room"]["list"]["items"][number];
 type RoomDetailsOutput = RouterOutputs["room"]["getById"];
 type MessageOutput = RouterOutputs["message"]["getHistory"]["items"][number];
 type ReportOutput = RouterOutputs["report"]["create"];
+type LocationStatusOutput = RouterOutputs["location"]["checkStatus"];
 type AdminLoginOutput = RouterOutputs["admin"]["login"];
 type AdminOverviewOutput = RouterOutputs["admin"]["overview"];
 type AdminGeofenceOutput = RouterOutputs["admin"]["geofence"];
@@ -132,6 +133,7 @@ function mapSession(
   token: string,
   session: NonNullable<SessionValidateOutput["session"]>,
   banInfo: SessionCreateOutput["banInfo"],
+  writeAccess?: AnonSession["writeAccess"],
 ): AnonSession {
   return {
     ban: mapBanInfo(banInfo),
@@ -140,10 +142,30 @@ function mapSession(
     displayName: session.displayName,
     token,
     userId: session.userId,
-    writeAccess: session.locationVerified
-      ? { kind: "allowed" }
-      : { kind: "unverified" },
+    writeAccess:
+      writeAccess ??
+      (session.locationVerified ? { kind: "allowed" } : { kind: "unverified" }),
   };
+}
+
+function mapLocationStatus(status: LocationStatusOutput): AnonSession["writeAccess"] {
+  if (status.hasValidLocation) {
+    return {
+      kind: "allowed",
+      validUntil: status.validUntil ? toIso(status.validUntil) : undefined,
+    };
+  }
+
+  return { kind: "unverified" };
+}
+
+async function getCurrentWriteAccess(
+  session: NonNullable<SessionValidateOutput["session"]>,
+): Promise<AnonSession["writeAccess"]> {
+  if (!session.locationVerified) return { kind: "unverified" };
+
+  const locationStatus = await trpc.location.checkStatus.query();
+  return mapLocationStatus(locationStatus);
 }
 
 function mapBanInfo(
@@ -371,10 +393,15 @@ export const api = {
             });
 
             if (validated.valid && validated.session) {
+              const writeAccess = await getCurrentWriteAccess(
+                validated.session,
+              );
+
               return mapSession(
                 existing.token,
                 validated.session,
                 validated.banInfo,
+                writeAccess,
               );
             }
           }
@@ -418,7 +445,9 @@ export const api = {
       latitude: number;
       longitude: number;
     }): Promise<
-      { kind: "allowed" } | { kind: "off_campus" } | { kind: "denied" }
+      | { kind: "allowed"; validUntil?: string }
+      | { kind: "off_campus" }
+      | { kind: "denied" }
     > {
       return withFallback(
         async () => {
@@ -432,12 +461,25 @@ export const api = {
           });
 
           return result.isWithinGeofence
-            ? { kind: "allowed" }
+            ? { kind: "allowed", validUntil: toIso(result.validUntil) }
             : { kind: "off_campus" };
         },
         async () => {
           await delay(700);
-          return { kind: "allowed" };
+          return {
+            kind: "allowed",
+            validUntil: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          };
+        },
+      );
+    },
+
+    async checkLocationStatus(): Promise<AnonSession["writeAccess"]> {
+      return withFallback(
+        async () => mapLocationStatus(await trpc.location.checkStatus.query()),
+        async () => {
+          await delay(150);
+          return { kind: "unverified" };
         },
       );
     },
@@ -598,9 +640,7 @@ export const api = {
     async list(roomId: string): Promise<Message[]> {
       if (!isUuid(roomId)) {
         await delay(200);
-        return mockMessages.filter(
-          (message) => message.roomId === roomId || roomId === "r_general",
-        );
+        return mockMessages.filter((message) => message.roomId === roomId);
       }
 
       return withFallback(
@@ -613,9 +653,7 @@ export const api = {
         },
         async () => {
           await delay(200);
-          return mockMessages.filter(
-            (message) => message.roomId === roomId || roomId === "r_general",
-          );
+          return mockMessages.filter((message) => message.roomId === roomId);
         },
       );
     },
@@ -914,9 +952,7 @@ export const api = {
     async roomMessages(roomId: string): Promise<Message[]> {
       if (!isUuid(roomId)) {
         await delay(200);
-        return mockMessages.filter(
-          (message) => message.roomId === roomId || roomId === "r_general",
-        );
+        return mockMessages.filter((message) => message.roomId === roomId);
       }
 
       return withFallback(
@@ -929,9 +965,7 @@ export const api = {
         },
         async () => {
           await delay(200);
-          return mockMessages.filter(
-            (message) => message.roomId === roomId || roomId === "r_general",
-          );
+          return mockMessages.filter((message) => message.roomId === roomId);
         },
       );
     },

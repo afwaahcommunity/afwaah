@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "campus - anonymous chat",
-  description: "Campus Connect chat and moderation workspace.",
+  description: "Afwaah chat and moderation workspace.",
   robots: {
     index: false,
     follow: false,

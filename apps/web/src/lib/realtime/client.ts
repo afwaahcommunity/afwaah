@@ -40,9 +40,23 @@ interface ConnectOpts {
 }
 
 let socket: Socket | null = null;
+let socketIdentityKey: string | null = null;
 
 function ensureSocket(opts: ConnectOpts): Socket | null {
   if (env.useMocks) return null;
+  const nextIdentityKey = [
+    opts.token,
+    opts.userId ?? "",
+    opts.displayName ?? "",
+    opts.displayColor ?? "",
+  ].join("|");
+
+  if (socket && socketIdentityKey !== nextIdentityKey) {
+    socket.disconnect();
+    socket = null;
+    socketIdentityKey = null;
+  }
+
   if (socket) return socket;
   try {
     socket = io(env.realtimeUrl, {
@@ -50,10 +64,17 @@ function ensureSocket(opts: ConnectOpts): Socket | null {
       transports: ["websocket"],
       autoConnect: true,
     });
+    socketIdentityKey = nextIdentityKey;
     return socket;
   } catch {
     return null;
   }
+}
+
+export function resetRealtimeConnection(): void {
+  socket?.disconnect();
+  socket = null;
+  socketIdentityKey = null;
 }
 
 export function joinRoom(roomId: string, opts: ConnectOpts): RoomChannel {

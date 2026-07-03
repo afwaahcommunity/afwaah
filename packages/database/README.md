@@ -54,7 +54,13 @@ Not included:
 0006_cross_domain_constraints.sql Admin foreign keys across domains
 0007_functions_triggers.sql       Stats, display-name, reaction, risk, upload functions
 0008_partitions.sql               Current and next six months of partitions
-0009_seed_data.sql                Default geofence, rate limits, system user, public rooms
+0009_seed_data.sql                Default geofence, rate limits, system user
+0010_ban_target_safety.sql        Ban target safety constraints
+0011_fix_check_active_ban_scope.sql Active ban scope corrections
+0012_user_display_color.sql       Anonymous user display color
+0013_expand_geofence_radius.sql   Larger geofence radius precision
+0014_state_geofence_radius.sql    Admin-configurable geofence radius
+0015_remove_seed_rooms.sql        Removes old demo rooms from existing local databases
 ```
 
 Run them from the repository root:

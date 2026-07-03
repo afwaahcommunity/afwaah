@@ -234,7 +234,7 @@ function PrimaryAction({ primary }: { primary: Details["primary"] }) {
   if (primary.kind === "contact") {
     return (
       <a
-        href="mailto:moderation@campus.example"
+        href="mailto:afwaah.community@gmail.com"
         className={`${base} border border-border text-foreground hover:bg-accent`}
       >
         {primary.label}

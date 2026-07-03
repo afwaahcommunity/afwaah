@@ -1,6 +1,6 @@
-# Campus Connect Backend Contract Status
+# Afwaah Backend Contract Status
 
-This note tracks backend contract support for the Next.js Campus Connect chat/admin module while preserving the current UI and behavior.
+This note tracks backend contract support for the Next.js Afwaah chat/admin module while preserving the current UI and behavior.
 
 ## Wired
 

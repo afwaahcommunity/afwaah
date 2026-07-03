@@ -22,13 +22,14 @@ export const locationRouter = router({
     .output(locationStatusOutputSchema)
     .query(async ({ ctx }) => {
       const locationService = new LocationService(ctx.db, ctx.redis);
-      const hasValidLocation = await locationService.hasValidWriteLocation(
+      const locationStatus = await locationService.getWriteLocationStatus(
         ctx.session.sessionId,
       );
 
       return {
-        hasValidLocation,
+        hasValidLocation: locationStatus.hasValidLocation,
         locationVerified: ctx.session.locationVerified,
+        validUntil: locationStatus.validUntil,
       };
     }),
 

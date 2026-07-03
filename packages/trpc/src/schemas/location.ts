@@ -19,6 +19,7 @@ export const verifyLocationOutputSchema = z.object({
 export const locationStatusOutputSchema = z.object({
   hasValidLocation: z.boolean(),
   locationVerified: z.boolean(),
+  validUntil: timestampSchema.nullable(),
 });
 
 export const geofenceSettingsOutputSchema = z.object({

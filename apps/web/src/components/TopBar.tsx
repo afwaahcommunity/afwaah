@@ -3,7 +3,13 @@ import { ThemeToggle } from "./ThemeToggle";
 import { User, MapPin } from "lucide-react";
 import type { AnonSession } from "@/lib/types";
 
-export function TopBar({ session }: { session: AnonSession | null }) {
+export function TopBar({
+  maxWidth = "max-w-5xl",
+  session,
+}: {
+  maxWidth?: string;
+  session: AnonSession | null;
+}) {
   const locState = session?.writeAccess.kind;
   const locLabel =
     locState === "allowed" ? "on campus"
@@ -19,7 +25,7 @@ export function TopBar({ session }: { session: AnonSession | null }) {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-4">
+      <div className={`mx-auto flex h-14 ${maxWidth} items-center justify-between gap-2 px-4`}>
         <Link href="/rooms" className="flex items-center gap-2 text-sm font-medium tracking-tight">
           <span className="h-2 w-2 rounded-full bg-primary" />
           campus

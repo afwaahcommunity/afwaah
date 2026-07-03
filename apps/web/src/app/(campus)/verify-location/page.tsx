@@ -8,12 +8,15 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { useSession } from "@/hooks/useSession";
 import { api } from "@/lib/api/client";
+import {
+  getReliableBrowserPosition,
+  isGeolocationPositionError,
+  LocationVerificationError,
+  VERIFY_REQUEST_TIMEOUT_MS,
+  withTimeout,
+} from "@/lib/location";
 import type { WriteAccessState } from "@/lib/types";
 
-const QUICK_GEOLOCATION_TIMEOUT_MS = 1500;
-const GEOLOCATION_TIMEOUT_MS = 12000;
-const LOCATION_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
-const VERIFY_REQUEST_TIMEOUT_MS = 5000;
 const SLOW_FEEDBACK_MS = 3500;
 
 type LocationPageState =
@@ -48,7 +51,7 @@ export default function VerifyLocationPage() {
         );
       }
 
-      const position = await getReliablePosition();
+      const position = await getReliableBrowserPosition();
       const res = await withTimeout(
         api.session.verifyLocation({
           accuracyMeters: position.coords.accuracy,
@@ -178,71 +181,6 @@ export default function VerifyLocationPage() {
   );
 }
 
-async function getReliablePosition(): Promise<GeolocationPosition> {
-  try {
-    return await getPosition(
-      {
-        enableHighAccuracy: false,
-        maximumAge: LOCATION_CACHE_MAX_AGE_MS,
-        timeout: QUICK_GEOLOCATION_TIMEOUT_MS,
-      },
-      QUICK_GEOLOCATION_TIMEOUT_MS + 500,
-    );
-  } catch (error) {
-    if (
-      isGeolocationPositionError(error) &&
-      error.code === error.PERMISSION_DENIED
-    ) {
-      throw error;
-    }
-
-    return getPosition(
-      {
-        enableHighAccuracy: false,
-        maximumAge: 0,
-        timeout: GEOLOCATION_TIMEOUT_MS,
-      },
-      GEOLOCATION_TIMEOUT_MS + 1000,
-    );
-  }
-}
-
-function getPosition(
-  options: PositionOptions,
-  timeoutMs: number,
-): Promise<GeolocationPosition> {
-  return withTimeout(
-    new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, options);
-    }),
-    timeoutMs,
-    "Your browser could not resolve location.",
-  );
-}
-
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  message: string,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new LocationVerificationError(message));
-    }, timeoutMs);
-
-    promise.then(
-      (value) => {
-        window.clearTimeout(timeout);
-        resolve(value);
-      },
-      (error: unknown) => {
-        window.clearTimeout(timeout);
-        reject(error);
-      },
-    );
-  });
-}
-
 function locationFailure(error: unknown): {
   message: string;
   state: Extract<LocationPageState, "denied" | "error">;
@@ -282,22 +220,4 @@ function locationFailure(error: unknown): {
     state: "error",
     writeAccess: { kind: "error", message },
   };
-}
-
-function isGeolocationPositionError(
-  error: unknown,
-): error is GeolocationPositionError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof (error as { code?: unknown }).code === "number"
-  );
-}
-
-class LocationVerificationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "LocationVerificationError";
-  }
 }

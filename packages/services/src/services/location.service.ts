@@ -35,6 +35,18 @@ export class LocationService {
     return Boolean(await this.locationRepo.findValidCheck(sessionId));
   }
 
+  async getWriteLocationStatus(sessionId: string): Promise<{
+    hasValidLocation: boolean;
+    validUntil: Date | null;
+  }> {
+    const locationCheck = await this.locationRepo.findValidCheck(sessionId);
+
+    return {
+      hasValidLocation: Boolean(locationCheck),
+      validUntil: locationCheck?.validUntil ?? null,
+    };
+  }
+
   async getDefaultGeofenceSettings(): Promise<Result<GeofenceSettings>> {
     const geofence = await this.locationRepo.findDefaultGeofence();
     if (!geofence) {

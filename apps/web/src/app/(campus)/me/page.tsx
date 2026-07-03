@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import { AccessStateBanner } from "@/components/AccessStateBanner";
@@ -12,11 +12,16 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSession } from "@/hooks/useSession";
 import { api } from "@/lib/api/client";
 import { randomDisplayName } from "@/lib/constants";
+import { resetRealtimeConnection } from "@/lib/realtime/client";
 
 export default function ProfilePage() {
   const { session, update } = useSession();
   const [name, setName] = useState(session?.displayName ?? "");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (session) setName(session.displayName);
+  }, [session?.displayName, session]);
 
   if (!session) {
     return (
@@ -29,11 +34,18 @@ export default function ProfilePage() {
   const displayName = name || session.displayName;
 
   const save = async () => {
+    const nextName = displayName.trim();
+    if (!nextName || nextName === session.displayName) return;
+
     setSaving(true);
     try {
-      await api.session.updateProfile({ displayName: displayName.trim() });
-      update({ displayName: displayName.trim() });
+      await api.session.updateProfile({ displayName: nextName });
+      resetRealtimeConnection();
+      update({ displayName: nextName });
+      setName(nextName);
       toast.success("Profile updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Profile update failed");
     } finally {
       setSaving(false);
     }
@@ -43,7 +55,12 @@ export default function ProfilePage() {
 
   const setColor = async (c: string) => {
     update({ displayColor: c });
-    await api.session.updateProfile({ displayColor: c });
+    try {
+      await api.session.updateProfile({ displayColor: c });
+      resetRealtimeConnection();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Color update failed");
+    }
   };
 
   return (

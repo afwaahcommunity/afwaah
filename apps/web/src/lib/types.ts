@@ -16,7 +16,7 @@ export interface AnonSession {
 }
 
 export type WriteAccessState =
-  | { kind: "allowed" }
+  | { kind: "allowed"; validUntil?: string }
   | { kind: "off_campus" }
   | { kind: "unverified" }
   | { kind: "denied" }

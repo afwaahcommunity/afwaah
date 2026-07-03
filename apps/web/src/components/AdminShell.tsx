@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
@@ -25,8 +28,14 @@ const nav: {
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const admin = typeof window !== "undefined" ? loadAdminSession() : null;
   const router = useRouter();
+  const [admin, setAdmin] = useState<{ token: string; name: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setAdmin(loadAdminSession());
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -47,6 +56,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <button
               onClick={() => {
                 clearAdminSession();
+                setAdmin(null);
                 router.push("/admin/login");
               }}
               className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"

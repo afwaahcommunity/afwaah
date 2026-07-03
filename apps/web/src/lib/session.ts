@@ -2,6 +2,7 @@ import type { AnonSession } from "./types";
 
 const KEY = "cc.session";
 const ADMIN_KEY = "cc.admin.session";
+export const SESSION_CHANGED_EVENT = "cc.session.changed";
 
 export function loadSession(): AnonSession | null {
   if (typeof window === "undefined") return null;
@@ -16,11 +17,19 @@ export function loadSession(): AnonSession | null {
 export function saveSession(session: AnonSession) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(session));
+  notifySessionChanged();
 }
 
 export function clearSession() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(KEY);
+  notifySessionChanged();
+}
+
+function notifySessionChanged() {
+  queueMicrotask(() => {
+    window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+  });
 }
 
 export function loadAdminSession(): { token: string; name: string } | null {
