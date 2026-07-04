@@ -1,7 +1,7 @@
 export const QUICK_GEOLOCATION_TIMEOUT_MS = 1500;
 export const GEOLOCATION_TIMEOUT_MS = 12000;
 export const LOCATION_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
-export const VERIFY_REQUEST_TIMEOUT_MS = 5000;
+export const VERIFY_REQUEST_TIMEOUT_MS = 60000;
 
 export async function canUseGeolocationSilently(): Promise<boolean> {
   if (typeof window === "undefined") return false;

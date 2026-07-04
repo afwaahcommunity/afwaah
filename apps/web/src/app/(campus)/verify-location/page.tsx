@@ -25,6 +25,7 @@ type LocationPageState =
 export default function VerifyLocationPage() {
   const { session, setWriteAccess } = useSession();
   const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [slowCheck, setSlowCheck] = useState(false);
   const [state, setState] = useState<LocationPageState>(
     session?.writeAccess.kind === "allowed"
@@ -38,6 +39,7 @@ export default function VerifyLocationPage() {
 
   const verify = async () => {
     setState("loading");
+    setErrorMessage(null);
     setSlowCheck(false);
     setWriteAccess({ kind: "loading" });
     const slowFeedbackTimer = window.setTimeout(() => {
@@ -59,9 +61,10 @@ export default function VerifyLocationPage() {
           longitude: position.coords.longitude,
         }),
         VERIFY_REQUEST_TIMEOUT_MS,
-        "Location verification took too long.",
+        "Location verification took too long. The server may still be waking up.",
       );
 
+      setErrorMessage(null);
       setState(
         res.kind === "allowed"
           ? "allowed"
@@ -73,6 +76,7 @@ export default function VerifyLocationPage() {
       if (res.kind === "allowed") toast.success("Location verified");
     } catch (error) {
       const failure = locationFailure(error);
+      setErrorMessage(failure.message);
       setState(failure.state);
       setWriteAccess(failure.writeAccess);
       if (failure.state === "denied") {
@@ -123,7 +127,8 @@ export default function VerifyLocationPage() {
         : state === "denied"
           ? "Enable location access in your browser to write."
           : state === "error"
-            ? "Try again, or continue reading without write access."
+            ? errorMessage ??
+              "Try again, or continue reading without write access."
             : state === "loading"
               ? slowCheck
                 ? "Your browser is still resolving your position."
