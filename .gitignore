@@ -11,3 +11,8 @@ packages/trpc/.smoke-dist
 *.log
 .DS_Store
 codex.md
+
+# Excluded folders
+Campus Connect/
+Classlocator-engine-main/
+docs/

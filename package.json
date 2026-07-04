@@ -8,8 +8,11 @@
   "scripts": {
     "build": "turbo build",
     "check-types": "turbo check-types",
+    "deploy:check": "pnpm --filter @campus-chat/web check-types && pnpm --filter @campus-chat/api check-types && pnpm --filter @campus-chat/realtime check-types",
     "db:migrate": "pnpm --filter @campus-chat/database migrate:docker",
     "db:migrate:docker": "pnpm --filter @campus-chat/database migrate:docker",
+    "db:migrate:node": "pnpm --filter @campus-chat/database migrate:node",
+    "db:migrate:prod": "pnpm --filter @campus-chat/database migrate:node",
     "db:migrate:psql": "pnpm --filter @campus-chat/database migrate",
     "dev": "turbo dev",
     "format": "prettier --write \"**/*.{js,json,md,ts}\" \"!codex.md\"",

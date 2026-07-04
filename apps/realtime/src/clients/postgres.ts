@@ -15,7 +15,10 @@ export interface PostgresClient {
 export function createPostgresClient(env: RealtimeEnv): PostgresClient {
   const pool = new Pool({
     connectionString: env.DATABASE_URL,
-    max: 10,
+    max: env.POSTGRES_POOL_MAX,
+    ssl: shouldUseSsl(env.DATABASE_URL)
+      ? { rejectUnauthorized: false }
+      : undefined,
   });
   const db = drizzle(pool, { schema });
 
@@ -29,4 +32,16 @@ export function createPostgresClient(env: RealtimeEnv): PostgresClient {
     },
     pool,
   };
+}
+
+function shouldUseSsl(connectionString: string): boolean {
+  try {
+    const url = new URL(connectionString);
+    return (
+      url.searchParams.get("sslmode") === "require" ||
+      url.hostname.endsWith(".neon.tech")
+    );
+  } catch {
+    return connectionString.includes("sslmode=require");
+  }
 }

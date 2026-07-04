@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+const booleanStringSchema = z
+  .enum(["true", "false", "1", "0", "yes", "no"])
+  .transform((value) => ["true", "1", "yes"].includes(value));
+
 const envSchema = z.object({
   CORS_ORIGINS: z
     .string()
@@ -14,12 +18,14 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4001),
+  POSTGRES_POOL_MAX: z.coerce.number().int().min(1).max(20).default(5),
   PRESENCE_HEARTBEAT_SECONDS: z.coerce
     .number()
     .int()
     .min(5)
     .max(120)
     .default(20),
+  REDIS_ENABLE_READY_CHECK: booleanStringSchema.default("false"),
   REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
   SESSION_COOKIE_NAME: z.string().min(1).default("campus_session"),
 });

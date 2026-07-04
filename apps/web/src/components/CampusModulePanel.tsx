@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Bed,
@@ -16,6 +17,7 @@ import {
   Vote,
   type LucideIcon,
 } from "lucide-react";
+import { env } from "@/lib/env";
 
 interface CampusModule {
   description: string;
@@ -47,9 +49,11 @@ const MODULES: CampusModule[] = [
   },
   {
     description: "Buildings, hostels, and useful spots.",
+    // Keep the unfinished map module available for later; enable it with NEXT_PUBLIC_ENABLE_MAP=true.
+    href: env.enableMap ? "/map" : undefined,
     icon: Map,
     label: "Campus map",
-    status: "soon",
+    status: env.enableMap ? "active" : "soon",
   },
   {
     description: "Exam and academic result links.",
@@ -79,6 +83,7 @@ const MODULES: CampusModule[] = [
 
 export function CampusModulePanel() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!open) return;
@@ -138,7 +143,12 @@ export function CampusModulePanel() {
 
           <nav className="flex min-w-0 flex-col gap-2">
             {MODULES.map((module) => (
-              <ModuleItem key={module.label} module={module} />
+              <ModuleItem
+                key={module.label}
+                active={Boolean(module.href && pathname.startsWith(module.href))}
+                module={module}
+                onNavigate={() => setOpen(false)}
+              />
             ))}
           </nav>
         </aside>
@@ -148,11 +158,15 @@ export function CampusModulePanel() {
 }
 
 function ModuleItem({
+  active = false,
   compact = false,
   module,
+  onNavigate,
 }: {
+  active?: boolean;
   compact?: boolean;
   module: CampusModule;
+  onNavigate?: () => void;
 }) {
   const Icon = module.icon;
   const content = (
@@ -160,7 +174,7 @@ function ModuleItem({
       <span
         className={
           "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border " +
-          (module.status === "active"
+          (active
             ? "border-primary/40 bg-primary/10 text-primary"
             : "border-border bg-background text-muted-foreground")
         }
@@ -190,13 +204,13 @@ function ModuleItem({
 
   const classes =
     "flex min-w-0 items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-colors " +
-    (module.status === "active"
+    (active
       ? "border-primary/40 bg-primary/10 text-foreground"
       : "border-border text-muted-foreground hover:bg-accent hover:text-foreground");
 
   if (module.href) {
     return (
-      <Link href={module.href} className={classes}>
+      <Link href={module.href} className={classes} onClick={onNavigate}>
         {content}
       </Link>
     );

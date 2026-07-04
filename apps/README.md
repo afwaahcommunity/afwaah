@@ -1,9 +1,9 @@
 # Apps
 
-Application packages will live here later:
+Application packages:
 
-- `web`: Next.js product surface
-- `api`: tRPC API for non-hot-path operations
-- `realtime`: dedicated Socket.IO/WebSocket server for chat events
+- `web`: Next.js product surface deployed on Vercel
+- `api`: tRPC/HTTP API deployed as a Render web service
+- `realtime`: Socket.IO server deployed as a Render web service
 
-No application implementation is included yet. The current work is limited to the database foundation from `codex.md`.
+For chat-only testing deployment, see `../docs/deployment-chat-free-tier.md`.

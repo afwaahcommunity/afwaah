@@ -185,3 +185,19 @@
 @utility presence-dot {
   animation: presence-pulse 2.4s ease-in-out infinite;
 }
+
+.campus-map-canvas .campus-map-svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.campus-map-canvas .room {
+  cursor: pointer;
+  transition: filter 140ms ease, opacity 140ms ease;
+}
+
+.campus-map-canvas .room:hover {
+  filter: brightness(1.12);
+  opacity: 0.95;
+}

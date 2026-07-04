@@ -1,4 +1,5 @@
 export const env = {
+  enableMap: process.env.NEXT_PUBLIC_ENABLE_MAP === "true",
   trpcUrl:
     process.env.NEXT_PUBLIC_API_TRPC_URL ??
     "http://localhost:4000/trpc",

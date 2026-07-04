@@ -20,6 +20,8 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  POSTGRES_POOL_MAX: z.coerce.number().int().min(1).max(20).default(5),
+  REDIS_ENABLE_READY_CHECK: booleanStringSchema.default("false"),
   REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
   SESSION_COOKIE_NAME: z.string().min(1).default("campus_session"),
   TRUST_PROXY: booleanStringSchema.default("true"),

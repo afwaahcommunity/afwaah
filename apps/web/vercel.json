@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @campus-chat/web build",
+  "env": {
+    "NEXT_PUBLIC_ENABLE_MAP": "false"
+  },
+  "installCommand": "pnpm install --frozen-lockfile --filter @campus-chat/web..."
+}

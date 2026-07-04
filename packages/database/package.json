@@ -14,7 +14,8 @@
     "build": "tsc --noEmit",
     "check-types": "tsc --noEmit",
     "migrate": "sh ./scripts/migrate.sh",
-    "migrate:docker": "sh ./scripts/migrate.docker.sh"
+    "migrate:docker": "sh ./scripts/migrate.docker.sh",
+    "migrate:node": "node ./scripts/migrate.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",

@@ -33,7 +33,7 @@ export function createRedisConnection(env: RealtimeEnv): RedisConnection {
 
 function createRedisClient(env: RealtimeEnv): Redis {
   return new Redis(env.REDIS_URL, {
-    enableReadyCheck: true,
+    enableReadyCheck: env.REDIS_ENABLE_READY_CHECK,
     maxRetriesPerRequest: 3,
     retryStrategy(times) {
       return Math.min(times * 100, 2_000);
