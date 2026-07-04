@@ -1,17 +1,27 @@
 import { LEGACY_SERVICES } from "../data/services";
 import { CAMPUS_ROOM_BY_ID } from "../data/rooms";
-import type { CampusRoom, FacilityType, GeometryIndex, LegacyServiceKey } from "../types";
+import type {
+  CampusRoom,
+  FacilityType,
+  FloorId,
+  GeometryIndex,
+  LegacyServiceKey,
+} from "../types";
 import { distanceBetween, pointForId } from "./geometry";
 import { calculateSameFloorRoute } from "./routing";
 
-export const FACILITY_OPTIONS = [
+const COMMON_FACILITY_OPTIONS = [
   { label: "Stairs", type: "stairs" },
   { label: "Lift / water", type: "lift" },
   { label: "Ladies toilet", type: "ladies_toilet" },
   { label: "Gents toilet", type: "gents_toilet" },
-  { label: "Gate", type: "gate" },
-  { label: "Backside", type: "backside" },
 ] as const satisfies { label: string; type: FacilityType }[];
+
+export function getFacilityOptions(floor: FloorId) {
+  return floor === "ground"
+    ? [...COMMON_FACILITY_OPTIONS, { label: "Gate", type: "gate" } as const]
+    : COMMON_FACILITY_OPTIONS;
+}
 
 const SERVICE_BY_FACILITY: Record<FacilityType, LegacyServiceKey> = {
   backside: "B",

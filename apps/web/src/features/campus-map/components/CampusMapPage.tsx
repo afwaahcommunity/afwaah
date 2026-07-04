@@ -53,7 +53,6 @@ export function CampusMapPage() {
 
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <RoomSearch
-                  floor={map.floor}
                   label="Current room"
                   onSelect={map.setFromId}
                   placeholder="Nearest room or room id"
@@ -85,6 +84,7 @@ export function CampusMapPage() {
             <section className="rounded-lg border border-border bg-card p-4">
               <FacilityShortcuts
                 disabled={!map.fromId && !map.selectedId}
+                floor={map.floor}
                 onSelect={map.useNearestFacility}
               />
             </section>

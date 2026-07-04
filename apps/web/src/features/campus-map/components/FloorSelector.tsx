@@ -13,7 +13,7 @@ export function FloorSelector({
   route: RouteResult | null;
 }) {
   return (
-    <div className="flex min-w-0 gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1">
+    <div className="mx-auto flex w-fit max-w-full min-w-0 gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 lg:mx-0">
       {FLOORS.map((item) => {
         const involved = route?.floorsInvolved.includes(item.id);
         const active = item.id === floor;

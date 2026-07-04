@@ -17,7 +17,6 @@ import {
   Vote,
   type LucideIcon,
 } from "lucide-react";
-import { env } from "@/lib/env";
 
 interface CampusModule {
   description: string;
@@ -36,6 +35,13 @@ const MODULES: CampusModule[] = [
     status: "active",
   },
   {
+    description: "Buildings, hostels, and useful spots.",
+    href: "/map",
+    icon: Map,
+    label: "Campus map",
+    status: "active",
+  },
+  {
     description: "Campus updates and notices.",
     icon: Newspaper,
     label: "News",
@@ -46,14 +52,6 @@ const MODULES: CampusModule[] = [
     icon: Vote,
     label: "Polls",
     status: "soon",
-  },
-  {
-    description: "Buildings, hostels, and useful spots.",
-    // Keep the unfinished map module available for later; enable it with NEXT_PUBLIC_ENABLE_MAP=true.
-    href: env.enableMap ? "/map" : undefined,
-    icon: Map,
-    label: "Campus map",
-    status: env.enableMap ? "active" : "soon",
   },
   {
     description: "Exam and academic result links.",

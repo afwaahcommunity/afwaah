@@ -7,12 +7,7 @@ export type LegacyServiceKey = "S" | "L" | "LT" | "GT" | "G" | "B";
 export type RoomType = "facility" | "hall" | "lab" | "office" | "room";
 
 export type FacilityType =
-  | "stairs"
-  | "lift"
-  | "ladies_toilet"
-  | "gents_toilet"
-  | "gate"
-  | "backside";
+  "stairs" | "lift" | "ladies_toilet" | "gents_toilet" | "gate" | "backside";
 
 export interface CampusRoom {
   details: string;
@@ -42,6 +37,8 @@ export interface GeometryIndex {
   rooms: Record<string, Point>;
   viewBox: ViewBox;
 }
+
+export type GeometryByFloor = Partial<Record<FloorId, GeometryIndex>>;
 
 export interface RouteSegment {
   floor: FloorId;

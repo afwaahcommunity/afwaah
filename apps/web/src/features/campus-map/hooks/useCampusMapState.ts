@@ -1,8 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FacilityType, FloorId, GeometryIndex } from "../types";
-import { calculateRoute, findNearestFacilityRoute, getRoom } from "../engine";
+import { FLOOR_SVGS } from "../data/floor-svgs";
+import {
+  calculateRoute,
+  findNearestFacilityRoute,
+  getRoom,
+  readGeometryFromSvgMarkup,
+} from "../engine";
+import type {
+  FacilityType,
+  FloorId,
+  GeometryByFloor,
+  GeometryIndex,
+} from "../types";
 
 function readInitialParams(): {
   floor: FloorId;
@@ -11,14 +22,22 @@ function readInitialParams(): {
   toId: string | null;
 } {
   if (typeof window === "undefined") {
-    return { floor: "ground" as FloorId, fromId: null, selectedId: null, toId: null };
+    return {
+      floor: "ground" as FloorId,
+      fromId: null,
+      selectedId: null,
+      toId: null,
+    };
   }
 
   const params = new URLSearchParams(window.location.search);
   const floor = params.get("floor");
 
   return {
-    floor: floor === "first" || floor === "second" || floor === "backside" ? floor : "ground",
+    floor:
+      floor === "first" || floor === "second" || floor === "backside"
+        ? floor
+        : "ground",
     fromId: params.get("from"),
     selectedId: params.get("room"),
     toId: params.get("to"),
@@ -26,19 +45,40 @@ function readInitialParams(): {
 }
 
 export function useCampusMapState() {
-  const initial = useMemo(readInitialParams, []);
-  const [floor, setFloorValue] = useState<FloorId>(initial.floor);
-  const [fromId, setFromIdValue] = useState<string | null>(initial.fromId);
-  const [toId, setToIdValue] = useState<string | null>(initial.toId);
-  const [selectedId, setSelectedIdValue] = useState<string | null>(initial.selectedId);
-  const [geometry, setGeometry] = useState<GeometryIndex | null>(null);
+  const [floor, setFloorValue] = useState<FloorId>("ground");
+  const [fromId, setFromIdValue] = useState<string | null>(null);
+  const [toId, setToIdValue] = useState<string | null>(null);
+  const [selectedId, setSelectedIdValue] = useState<string | null>(null);
+  const [geometryByFloor, setGeometryByFloor] = useState<GeometryByFloor>({});
   const [ready, setReady] = useState(false);
 
   const fromRoom = getRoom(fromId);
   const toRoom = getRoom(toId);
   const selectedRoom = getRoom(selectedId);
+  const activeGeometry = geometryByFloor[floor] ?? null;
 
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    const initial = readInitialParams();
+    setFloorValue(initial.floor);
+    setFromIdValue(initial.fromId);
+    setToIdValue(initial.toId);
+    setSelectedIdValue(initial.selectedId);
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    const sourceFloor = fromRoom?.floor;
+    if (!sourceFloor || geometryByFloor[sourceFloor]) return;
+
+    const sourceGeometry = readGeometryFromSvgMarkup(FLOOR_SVGS[sourceFloor]);
+    if (!sourceGeometry) return;
+
+    setGeometryByFloor((current) =>
+      current[sourceFloor]
+        ? current
+        : { ...current, [sourceFloor]: sourceGeometry },
+    );
+  }, [fromRoom?.floor, geometryByFloor]);
 
   useEffect(() => {
     if (!ready) return;
@@ -50,14 +90,22 @@ export function useCampusMapState() {
     if (selectedId) params.set("room", selectedId);
 
     const query = params.toString();
-    const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    const nextUrl = query
+      ? `${window.location.pathname}?${query}`
+      : window.location.pathname;
     window.history.replaceState(null, "", nextUrl);
   }, [floor, fromId, ready, selectedId, toId]);
 
   const setFloor = useCallback((nextFloor: FloorId) => {
     setFloorValue(nextFloor);
-    setGeometry(null);
   }, []);
+
+  const setActiveGeometry = useCallback(
+    (nextGeometry: GeometryIndex) => {
+      setGeometryByFloor((current) => ({ ...current, [floor]: nextGeometry }));
+    },
+    [floor],
+  );
 
   const setFromId = useCallback((roomId: string | null) => {
     setFromIdValue(roomId);
@@ -66,12 +114,19 @@ export function useCampusMapState() {
     if (room) setFloorValue(room.floor);
   }, []);
 
-  const setToId = useCallback((roomId: string | null) => {
-    setToIdValue(roomId);
-    setSelectedIdValue(roomId);
-    const room = getRoom(roomId);
-    if (room) setFloorValue(room.floor);
-  }, []);
+  const setToId = useCallback(
+    (roomId: string | null) => {
+      setToIdValue(roomId);
+      setSelectedIdValue(roomId);
+
+      const room = getRoom(roomId);
+      const source = getRoom(fromId);
+      if (room && (!source || room.floor === source.floor)) {
+        setFloorValue(room.floor);
+      }
+    },
+    [fromId],
+  );
 
   const selectRoom = useCallback(
     (roomId: string) => {
@@ -103,26 +158,37 @@ export function useCampusMapState() {
   const useNearestFacility = useCallback(
     (facility: FacilityType) => {
       const source = fromId ?? selectedId;
-      const nearest = findNearestFacilityRoute(source, facility, geometry);
+      const nearest = findNearestFacilityRoute(
+        source,
+        facility,
+        activeGeometry,
+      );
       if (!nearest) return null;
 
       setToIdValue(nearest.room.id);
       setSelectedIdValue(nearest.room.id);
       return nearest.room;
     },
-    [fromId, geometry, selectedId],
+    [activeGeometry, fromId, selectedId],
   );
 
   const route = useMemo(
-    () => calculateRoute({ activeFloor: floor, fromId, geometry, toId }),
-    [floor, fromId, geometry, toId],
+    () =>
+      calculateRoute({
+        activeFloor: floor,
+        fromId,
+        geometry: activeGeometry,
+        geometryByFloor,
+        toId,
+      }),
+    [activeGeometry, floor, fromId, geometryByFloor, toId],
   );
 
   return {
     floor,
     fromId,
     fromRoom,
-    geometry,
+    geometry: activeGeometry,
     resetRoute,
     route,
     selectRoom,
@@ -130,7 +196,7 @@ export function useCampusMapState() {
     selectedRoom,
     setFloor,
     setFromId,
-    setGeometry,
+    setGeometry: setActiveGeometry,
     setToId,
     swapRoute,
     toId,

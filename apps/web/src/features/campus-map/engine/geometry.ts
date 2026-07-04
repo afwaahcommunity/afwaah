@@ -28,7 +28,13 @@ function getElementPoint(element: SVGElement): Point | null {
   const y = numberAttribute(element, "y");
 
   if (x != null && y != null) {
-    return { id: element.id || undefined, x, y };
+    const width = numberAttribute(element, "width") ?? 0;
+    const height = numberAttribute(element, "height") ?? 0;
+    return {
+      id: element.id || undefined,
+      x: x + width / 2,
+      y: y + height / 2,
+    };
   }
 
   return getBoxPoint(element);
@@ -75,6 +81,33 @@ export function readGeometryFromSvg(svg: SVGSVGElement): GeometryIndex {
     rooms,
     viewBox: parseViewBox(svg),
   };
+}
+
+export function readGeometryFromSvgMarkup(
+  markup: string,
+): GeometryIndex | null {
+  if (typeof document === "undefined") return null;
+
+  const host = document.createElement("div");
+  host.setAttribute("aria-hidden", "true");
+  Object.assign(host.style, {
+    height: "2000px",
+    left: "-100000px",
+    pointerEvents: "none",
+    position: "fixed",
+    top: "0",
+    visibility: "hidden",
+    width: "2000px",
+  });
+  host.innerHTML = markup;
+  document.body.appendChild(host);
+
+  try {
+    const svg = host.querySelector("svg");
+    return svg instanceof SVGSVGElement ? readGeometryFromSvg(svg) : null;
+  } finally {
+    host.remove();
+  }
 }
 
 export function pointForId(geometry: GeometryIndex, id: string): Point | null {

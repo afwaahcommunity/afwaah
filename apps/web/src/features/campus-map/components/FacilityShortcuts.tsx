@@ -1,8 +1,8 @@
 "use client";
 
 import { DoorOpen, Droplets, Footprints, MapPin, MoveUp } from "lucide-react";
-import { FACILITY_OPTIONS } from "../engine";
-import type { FacilityType } from "../types";
+import { getFacilityOptions } from "../engine";
+import type { FacilityType, FloorId } from "../types";
 
 const ICONS: Record<FacilityType, typeof Footprints> = {
   backside: DoorOpen,
@@ -15,18 +15,22 @@ const ICONS: Record<FacilityType, typeof Footprints> = {
 
 export function FacilityShortcuts({
   disabled,
+  floor,
   onSelect,
 }: {
   disabled: boolean;
+  floor: FloorId;
   onSelect: (facility: FacilityType) => void;
 }) {
+  const options = getFacilityOptions(floor);
+
   return (
     <div>
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Nearest
       </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
-        {FACILITY_OPTIONS.map((item) => {
+        {options.map((item) => {
           const Icon = item.type === "lift" ? Droplets : ICONS[item.type];
           return (
             <button
