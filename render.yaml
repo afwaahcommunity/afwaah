@@ -3,8 +3,7 @@ services:
     name: campus-chat-api
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/api check-types
-    preDeployCommand: pnpm db:migrate:node
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/api check-types && pnpm db:migrate:node
     startCommand: pnpm --filter @campus-chat/api start
     healthCheckPath: /health
     envVars:
