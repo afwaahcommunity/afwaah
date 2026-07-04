@@ -3,8 +3,8 @@ services:
     name: campus-chat-api
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/api check-types && pnpm db:migrate:node
-    startCommand: pnpm --filter @campus-chat/api start
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/api... build && pnpm db:migrate:node
+    startCommand: node --conditions=compiled --experimental-specifier-resolution=node apps/api/dist/src/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
@@ -36,8 +36,8 @@ services:
     name: campus-chat-realtime
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/realtime check-types
-    startCommand: pnpm --filter @campus-chat/realtime start
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/realtime... build
+    startCommand: node --conditions=compiled --experimental-specifier-resolution=node apps/realtime/dist/src/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION

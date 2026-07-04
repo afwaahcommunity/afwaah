@@ -4,21 +4,69 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./server/index.ts",
-    "./client": "./client/index.ts",
-    "./context": "./server/context.ts",
-    "./openapi": "./server/openapi.ts",
-    "./router": "./server/router.ts",
-    "./schemas": "./server/schemas.ts",
-    "./server": "./server/index.ts",
-    "./server/context": "./server/context.ts",
-    "./server/openapi": "./server/openapi.ts",
-    "./server/router": "./server/router.ts",
-    "./server/schemas": "./server/schemas.ts",
-    "./server/trpc": "./server/trpc.ts"
+    ".": {
+      "types": "./server/index.ts",
+      "compiled": "./dist/server/index.js",
+      "default": "./server/index.ts"
+    },
+    "./client": {
+      "types": "./client/index.ts",
+      "compiled": "./dist/client/index.js",
+      "default": "./client/index.ts"
+    },
+    "./context": {
+      "types": "./server/context.ts",
+      "compiled": "./dist/server/context.js",
+      "default": "./server/context.ts"
+    },
+    "./openapi": {
+      "types": "./server/openapi.ts",
+      "compiled": "./dist/server/openapi.js",
+      "default": "./server/openapi.ts"
+    },
+    "./router": {
+      "types": "./server/router.ts",
+      "compiled": "./dist/server/router.js",
+      "default": "./server/router.ts"
+    },
+    "./schemas": {
+      "types": "./server/schemas.ts",
+      "compiled": "./dist/server/schemas.js",
+      "default": "./server/schemas.ts"
+    },
+    "./server": {
+      "types": "./server/index.ts",
+      "compiled": "./dist/server/index.js",
+      "default": "./server/index.ts"
+    },
+    "./server/context": {
+      "types": "./server/context.ts",
+      "compiled": "./dist/server/context.js",
+      "default": "./server/context.ts"
+    },
+    "./server/openapi": {
+      "types": "./server/openapi.ts",
+      "compiled": "./dist/server/openapi.js",
+      "default": "./server/openapi.ts"
+    },
+    "./server/router": {
+      "types": "./server/router.ts",
+      "compiled": "./dist/server/router.js",
+      "default": "./server/router.ts"
+    },
+    "./server/schemas": {
+      "types": "./server/schemas.ts",
+      "compiled": "./dist/server/schemas.js",
+      "default": "./server/schemas.ts"
+    },
+    "./server/trpc": {
+      "types": "./server/trpc.ts",
+      "compiled": "./dist/server/trpc.js",
+      "default": "./server/trpc.ts"
+    }
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/fix-esm-imports.mjs dist",
     "check-types": "tsc --noEmit",
     "smoke:docker": "tsc -p tsconfig.smoke.json && node --loader ./scripts/ts-extension-loader.mjs .smoke-dist/scripts/smoke.js"
   },

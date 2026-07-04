@@ -4,16 +4,44 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./cache": "./src/cache/index.ts",
-    "./errors": "./src/errors/index.ts",
-    "./repositories": "./src/repositories/index.ts",
-    "./services": "./src/services/index.ts",
-    "./types": "./src/types/index.ts",
-    "./utils": "./src/utils/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "compiled": "./dist/src/index.js",
+      "default": "./src/index.ts"
+    },
+    "./cache": {
+      "types": "./src/cache/index.ts",
+      "compiled": "./dist/src/cache/index.js",
+      "default": "./src/cache/index.ts"
+    },
+    "./errors": {
+      "types": "./src/errors/index.ts",
+      "compiled": "./dist/src/errors/index.js",
+      "default": "./src/errors/index.ts"
+    },
+    "./repositories": {
+      "types": "./src/repositories/index.ts",
+      "compiled": "./dist/src/repositories/index.js",
+      "default": "./src/repositories/index.ts"
+    },
+    "./services": {
+      "types": "./src/services/index.ts",
+      "compiled": "./dist/src/services/index.js",
+      "default": "./src/services/index.ts"
+    },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "compiled": "./dist/src/types/index.js",
+      "default": "./src/types/index.ts"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "compiled": "./dist/src/utils/index.js",
+      "default": "./src/utils/index.ts"
+    }
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/fix-esm-imports.mjs dist",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

@@ -4,14 +4,34 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./redis": "./src/redis.ts",
-    "./models": "./src/models/index.ts",
-    "./schema.ts": "./schema.ts",
-    "./schema": "./src/schema/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "compiled": "./dist/src/index.js",
+      "default": "./src/index.ts"
+    },
+    "./redis": {
+      "types": "./src/redis.ts",
+      "compiled": "./dist/src/redis.js",
+      "default": "./src/redis.ts"
+    },
+    "./models": {
+      "types": "./src/models/index.ts",
+      "compiled": "./dist/src/models/index.js",
+      "default": "./src/models/index.ts"
+    },
+    "./schema.ts": {
+      "types": "./schema.ts",
+      "compiled": "./dist/schema.js",
+      "default": "./schema.ts"
+    },
+    "./schema": {
+      "types": "./src/schema/index.ts",
+      "compiled": "./dist/src/schema/index.js",
+      "default": "./src/schema/index.ts"
+    }
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/fix-esm-imports.mjs dist",
     "check-types": "tsc --noEmit",
     "migrate": "sh ./scripts/migrate.sh",
     "migrate:docker": "sh ./scripts/migrate.docker.sh",
