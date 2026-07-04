@@ -21,7 +21,13 @@ import { formatTimeLeft } from "@/lib/time";
 
 const ROOM_EXPIRY_WARNING_MS = 15 * 60 * 1000;
 
-export function ChatRoom({ room, session }: { room: Room; session: AnonSession }) {
+export function ChatRoom({
+  room,
+  session,
+}: {
+  room: Room;
+  session: AnonSession;
+}) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [typing, setTyping] = useState<TypingUser[]>([]);
@@ -35,7 +41,6 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
 
   const channelRef = useRef<ReturnType<typeof joinRoom> | null>(null);
   const expiryHandledRef = useRef(false);
-
 
   useEffect(() => {
     let active = true;
@@ -64,7 +69,12 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
       // is determined by userId, never by display name.
       const remapped = m.map((msg) =>
         msg.userId === "me"
-          ? { ...msg, userId: session.userId, displayName: session.displayName, displayColor: session.displayColor }
+          ? {
+              ...msg,
+              userId: session.userId,
+              displayName: session.displayName,
+              displayColor: session.displayColor,
+            }
           : msg,
       );
       setMessages(remapped);
@@ -83,7 +93,9 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         prev.some((existing) => existing.id === m.id) ? prev : [...prev, m],
       ),
     );
-    const u2 = ch.onTyping((list) => setTyping(list.filter((t) => t.userId !== session.userId)));
+    const u2 = ch.onTyping((list) =>
+      setTyping(list.filter((t) => t.userId !== session.userId)),
+    );
     const u3 = ch.onPresence((list) => setPresence(list));
     const u4 = ch.onReaction((update) =>
       setMessages((prev) =>
@@ -104,8 +116,22 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         }),
       ),
     );
-    return () => { active = false; u1(); u2(); u3(); u4(); ch.leave(); };
-  }, [room.id, room.expiresAt, session.token, session.userId, session.displayName, session.displayColor]);
+    return () => {
+      active = false;
+      u1();
+      u2();
+      u3();
+      u4();
+      ch.leave();
+    };
+  }, [
+    room.id,
+    room.expiresAt,
+    session.token,
+    session.userId,
+    session.displayName,
+    session.displayColor,
+  ]);
 
   useEffect(() => {
     if (!room.expiresAt) return;
@@ -113,9 +139,13 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
     return () => window.clearInterval(timer);
   }, [room.expiresAt]);
 
-  const expiresAtMs = room.expiresAt ? new Date(room.expiresAt).getTime() : null;
+  const expiresAtMs = room.expiresAt
+    ? new Date(room.expiresAt).getTime()
+    : null;
   const msLeft =
-    expiresAtMs !== null && !Number.isNaN(expiresAtMs) ? expiresAtMs - now : null;
+    expiresAtMs !== null && !Number.isNaN(expiresAtMs)
+      ? expiresAtMs - now
+      : null;
   const expiresSoon =
     msLeft !== null && msLeft > 0 && msLeft <= ROOM_EXPIRY_WARNING_MS;
   const roomExpired = msLeft !== null && msLeft <= 0;
@@ -133,19 +163,26 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
 
   const canWrite = useMemo(() => {
     if (roomExpired) return false;
-    if (session.ban && (session.ban.kind === "hard" || session.ban.kind === "read_only" || session.ban.kind === "room_ban" || session.ban.kind === "quarantine")) return false;
+    if (
+      session.ban &&
+      (session.ban.kind === "hard" ||
+        session.ban.kind === "read_only" ||
+        session.ban.kind === "room_ban" ||
+        session.ban.kind === "quarantine")
+    )
+      return false;
     return session.writeAccess.kind === "allowed";
   }, [roomExpired, session]);
 
   const disabledReason = roomExpired
     ? "This room has expired."
     : session.ban
-    ? "You can't send messages while restricted."
-    : session.writeAccess.kind === "off_campus"
-    ? "You're off campus — reading only."
-    : session.writeAccess.kind !== "allowed"
-    ? "Verify location to send messages."
-    : undefined;
+      ? "You can't send messages while restricted."
+      : session.writeAccess.kind === "off_campus"
+        ? "You're off campus — reading only."
+        : session.writeAccess.kind !== "allowed"
+          ? "Verify location to send messages."
+          : undefined;
 
   const send = async (content: string) => {
     if (roomExpired) {
@@ -153,33 +190,38 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
       return;
     }
 
-    const sent = channelRef.current
-      ? await channelRef.current.sendMessage(content)
-      : (await api.messages.send({ roomId: room.id, content }),
-        {
-          createdAt: new Date().toISOString(),
-          messageId: `local_${Math.random().toString(36).slice(2, 8)}`,
-        });
+    try {
+      const sent = channelRef.current
+        ? await channelRef.current.sendMessage(content)
+        : (await api.messages.send({ roomId: room.id, content }),
+          {
+            createdAt: new Date().toISOString(),
+            messageId: `local_${Math.random().toString(36).slice(2, 8)}`,
+          });
 
-    setMessages((prev) =>
-      prev.some((message) => message.id === sent.messageId)
-        ? prev
-        : [
-            ...prev,
-            {
-              content,
-              createdAt: sent.createdAt,
-              displayColor: session.displayColor,
-              displayName: session.displayName,
-              id: sent.messageId,
-              isMine: true,
-              myReactions: [],
-              reactions: {},
-              roomId: room.id,
-              userId: session.userId,
-            },
-          ],
-    );
+      setMessages((prev) =>
+        prev.some((message) => message.id === sent.messageId)
+          ? prev
+          : [
+              ...prev,
+              {
+                content,
+                createdAt: sent.createdAt,
+                displayColor: session.displayColor,
+                displayName: session.displayName,
+                id: sent.messageId,
+                isMine: true,
+                myReactions: [],
+                reactions: {},
+                roomId: room.id,
+                userId: session.userId,
+              },
+            ],
+      );
+    } catch (error) {
+      toast.error(errorMessage(error));
+      throw error;
+    }
   };
 
   const handleReact = async (messageId: string, emoji: string) => {
@@ -197,7 +239,10 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
       prev.map((m) => {
         if (m.id !== messageId) return m;
         const hadIt = m.myReactions.includes(emoji);
-        const nextCount = Math.max(0, (m.reactions[emoji] ?? 0) + (hadIt ? -1 : 1));
+        const nextCount = Math.max(
+          0,
+          (m.reactions[emoji] ?? 0) + (hadIt ? -1 : 1),
+        );
         const nextReactions = { ...m.reactions };
         if (nextCount === 0) delete nextReactions[emoji];
         else nextReactions[emoji] = nextCount;
@@ -222,7 +267,10 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         prev.map((m) => {
           if (m.id !== messageId) return m;
           const hadIt = m.myReactions.includes(emoji);
-          const nextCount = Math.max(0, (m.reactions[emoji] ?? 0) + (hadIt ? -1 : 1));
+          const nextCount = Math.max(
+            0,
+            (m.reactions[emoji] ?? 0) + (hadIt ? -1 : 1),
+          );
           const nextReactions = { ...m.reactions };
           if (nextCount === 0) delete nextReactions[emoji];
           else nextReactions[emoji] = nextCount;
@@ -241,7 +289,11 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
       <header className="flex items-center gap-3 border-b border-border bg-background px-4 py-2.5">
-        <Link href="/rooms" aria-label="Back" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden">
+        <Link
+          href="/rooms"
+          aria-label="Back"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="min-w-0 flex-1">
@@ -252,12 +304,15 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
             </span>
           </div>
           {room.description && (
-            <p className="truncate text-xs text-muted-foreground">{room.description}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {room.description}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground">
-            <Users className="h-3.5 w-3.5" /> {presence.length || room.participantCount}
+            <Users className="h-3.5 w-3.5" />{" "}
+            {presence.length || room.participantCount}
           </span>
           <PresenceBar users={presence} />
           <button
@@ -308,7 +363,6 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         onReact={handleReact}
       />
 
-
       <div className="px-4 pb-1">
         <TypingIndicator users={typing} />
       </div>
@@ -321,7 +375,11 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         placeholder={`Message #${room.name}`}
       />
 
-      <ShareRoomModal roomId={room.id} open={shareOpen} onClose={() => setShareOpen(false)} />
+      <ShareRoomModal
+        roomId={room.id}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
       <ReportDialog
         open={!!reportTarget}
         message={reportTarget}
@@ -330,12 +388,25 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         reporterId={session.userId}
         restricted={
           session.ban?.kind === "read_only"
-            ? { title: "Reporting is disabled", description: "Your account is currently read-only. You cannot submit reports." }
+            ? {
+                title: "Reporting is disabled",
+                description:
+                  "Your account is currently read-only. You cannot submit reports.",
+              }
             : session.ban?.kind === "quarantine"
-            ? { title: "Reporting is disabled", description: "Your account is under review. Reporting is temporarily unavailable." }
-            : session.ban?.kind === "room_ban" && session.ban.roomId === room.id
-            ? { title: "Reporting is disabled in this room", description: "You are banned from this room and cannot submit reports for its messages." }
-            : null
+              ? {
+                  title: "Reporting is disabled",
+                  description:
+                    "Your account is under review. Reporting is temporarily unavailable.",
+                }
+              : session.ban?.kind === "room_ban" &&
+                  session.ban.roomId === room.id
+                ? {
+                    title: "Reporting is disabled in this room",
+                    description:
+                      "You are banned from this room and cannot submit reports for its messages.",
+                  }
+                : null
         }
       />
       <DeleteMessageDialog
@@ -344,12 +415,21 @@ export function ChatRoom({ room, session }: { room: Room; session: AnonSession }
         onClose={() => setDeleteTarget(null)}
         onDeleted={(id) =>
           setMessages((prev) =>
-            prev.map((m) => (m.id === id ? { ...m, deleted: true, content: "" } : m)),
+            prev.map((m) =>
+              m.id === id ? { ...m, deleted: true, content: "" } : m,
+            ),
           )
         }
       />
-      <LeaveRoomDialog open={leaveOpen} room={room} onClose={() => setLeaveOpen(false)} />
-
+      <LeaveRoomDialog
+        open={leaveOpen}
+        room={room}
+        onClose={() => setLeaveOpen(false)}
+      />
     </div>
   );
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Failed to send message.";
 }

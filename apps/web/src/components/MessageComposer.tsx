@@ -8,25 +8,34 @@ export function MessageComposer({
   disabledReason,
   placeholder = "Message",
 }: {
-  onSend: (content: string) => void;
+  onSend: (content: string) => Promise<void> | void;
   onTyping?: () => void;
   disabled?: boolean;
   disabledReason?: string;
   placeholder?: string;
 }) {
   const [value, setValue] = useState("");
+  const [sending, setSending] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     const v = value.trim();
-    if (!v || disabled) return;
-    onSend(v);
-    setValue("");
+    if (!v || disabled || sending) return;
+
+    setSending(true);
+    try {
+      await onSend(v);
+      setValue("");
+    } catch {
+      // The caller owns user-facing error messages; keep the draft intact.
+    } finally {
+      setSending(false);
+    }
   };
 
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      submit();
+      void submit();
     }
   };
 
@@ -56,8 +65,8 @@ export function MessageComposer({
         />
         <button
           type="button"
-          onClick={submit}
-          disabled={!value.trim()}
+          onClick={() => void submit()}
+          disabled={!value.trim() || sending}
           className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
           aria-label="Send"
         >

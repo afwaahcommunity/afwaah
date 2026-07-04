@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { RateLimitCache, RoomCache, type RedisClient } from "../cache";
 import { createError } from "../errors";
 import {
@@ -17,6 +19,32 @@ import type {
 } from "../types";
 import { err, ok } from "../types";
 import { WriteGuardService } from "./write-guard.service";
+
+const MESSAGE_GLOBAL_LIMIT = {
+  burstMax: 4,
+  burstWindowSeconds: 6,
+  maxRequests: 24,
+  windowSeconds: 60,
+} as const;
+
+const MESSAGE_ROOM_LIMIT = {
+  burstMax: 3,
+  burstWindowSeconds: 6,
+  maxRequests: 12,
+  windowSeconds: 30,
+} as const;
+
+const MESSAGE_DUPLICATE_LIMIT = {
+  maxRequests: 2,
+  windowSeconds: 20,
+} as const;
+
+const MESSAGE_SHORT_TEXT_LIMIT = {
+  maxRequests: 6,
+  windowSeconds: 20,
+} as const;
+
+const SHORT_TEXT_MAX_LENGTH = 12;
 
 export class MessageService {
   private readonly messageRepo: MessageRepository;
@@ -277,23 +305,12 @@ export class MessageService {
     });
     if (!writeAccess.ok) return err(writeAccess.error);
 
-    const limit = await this.rateLimitCache.checkWithBurst(
-      "message_send",
+    const rateLimit = await this.enforceMessageRateLimits(
       userId,
-      {
-        burstMax: 5,
-        burstWindowSeconds: 5,
-        maxRequests: 30,
-        windowSeconds: 60,
-      },
+      input.roomId,
+      body,
     );
-    if (!limit.allowed) {
-      return err(
-        createError("RATE_LIMITED", "Message send rate limited.", {
-          retryAfterSeconds: limit.retryAfterSeconds,
-        }),
-      );
-    }
+    if (!rateLimit.ok) return err(rateLimit.error);
 
     const participant = await this.roomRepo.getParticipant(
       input.roomId,
@@ -340,6 +357,69 @@ export class MessageService {
     });
   }
 
+  private async enforceMessageRateLimits(
+    userId: string,
+    roomId: string,
+    body: string,
+  ): Promise<Result<void>> {
+    const global = await this.rateLimitCache.checkWithBurst(
+      "message_send",
+      userId,
+      MESSAGE_GLOBAL_LIMIT,
+    );
+    if (!global.allowed) {
+      return rateLimited(
+        "You're sending messages too quickly.",
+        global.retryAfterSeconds,
+        "global",
+      );
+    }
+
+    const room = await this.rateLimitCache.checkWithBurst(
+      "message_burst",
+      `${userId}:${roomId}`,
+      MESSAGE_ROOM_LIMIT,
+    );
+    if (!room.allowed) {
+      return rateLimited(
+        "Slow down in this room.",
+        room.retryAfterSeconds,
+        "room",
+      );
+    }
+
+    const normalizedBody = normalizeMessageBody(body);
+    if (normalizedBody.length <= SHORT_TEXT_MAX_LENGTH) {
+      const shortText = await this.rateLimitCache.checkAndIncrement(
+        "message_burst",
+        `${userId}:${roomId}:short`,
+        MESSAGE_SHORT_TEXT_LIMIT,
+      );
+      if (!shortText.allowed) {
+        return rateLimited(
+          "Too many short messages.",
+          shortText.retryAfterSeconds,
+          "short_text",
+        );
+      }
+    }
+
+    const duplicate = await this.rateLimitCache.checkAndIncrement(
+      "message_burst",
+      `${userId}:${roomId}:same:${hashMessageBody(normalizedBody)}`,
+      MESSAGE_DUPLICATE_LIMIT,
+    );
+    if (!duplicate.allowed) {
+      return rateLimited(
+        "Repeated message blocked.",
+        duplicate.retryAfterSeconds,
+        "duplicate",
+      );
+    }
+
+    return ok(undefined);
+  }
+
   private async addViewerReactions(
     messages: MessageData[],
     viewerUserId?: string,
@@ -363,6 +443,31 @@ export class MessageService {
       myReactions: byMessageId.get(message.id) ?? [],
     }));
   }
+}
+
+function rateLimited(
+  message: string,
+  retryAfterSeconds: number | null,
+  limitType: string,
+): Result<void> {
+  const cooldown = retryAfterSeconds
+    ? ` Try again in ${retryAfterSeconds}s.`
+    : " Try again in a few seconds.";
+
+  return err(
+    createError("RATE_LIMITED", `${message}${cooldown}`, {
+      limitType,
+      retryAfterSeconds,
+    }),
+  );
+}
+
+function normalizeMessageBody(body: string): string {
+  return body.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function hashMessageBody(body: string): string {
+  return createHash("sha256").update(body).digest("hex").slice(0, 16);
 }
 
 function mapMessage(message: {

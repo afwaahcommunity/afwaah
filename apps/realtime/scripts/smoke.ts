@@ -267,6 +267,33 @@ async function main(): Promise<void> {
           "reaction update broadcast",
         );
 
+        await sleep(6100);
+        const repeatedBody = `duplicate realtime smoke ${randomUUID()}`;
+        await socket.emit("message:send", {
+          body: repeatedBody,
+          bodyType: "text",
+          clientMessageId: randomUUID(),
+          roomId: room.value.id,
+        });
+        await socket.emit("message:send", {
+          body: repeatedBody,
+          bodyType: "text",
+          clientMessageId: randomUUID(),
+          roomId: room.value.id,
+        });
+        await socket.emit("message:send", {
+          body: repeatedBody,
+          bodyType: "text",
+          clientMessageId: randomUUID(),
+          roomId: room.value.id,
+        });
+        await socket.pollUntil(
+          (payload) =>
+            payload.includes("RATE_LIMITED") &&
+            payload.includes("Repeated message blocked"),
+          "duplicate message spam blocked",
+        );
+
         await readOnlySocket.close();
         await socket.close();
       } finally {
@@ -393,6 +420,19 @@ function createCleanupTracker() {
           redis.del(redisKeys.rateLimit("room_create", userId)),
           redis.del(redisKeys.rateLimit("room_join", userId)),
         ]),
+        ...Array.from(userIds).flatMap((userId) =>
+          Array.from(roomIds).flatMap((roomId) => [
+            redis.del(
+              redisKeys.rateLimit("message_burst", `${userId}:${roomId}`),
+            ),
+            redis.del(
+              redisKeys.rateLimitBurst("message_burst", `${userId}:${roomId}`),
+            ),
+            redis.del(
+              redisKeys.rateLimit("message_burst", `${userId}:${roomId}:short`),
+            ),
+          ]),
+        ),
         ...Array.from(roomIds).flatMap((roomId) => [
           redis.del(redisKeys.recentRoomMessages(roomId)),
           redis.del(redisKeys.roomMetadata(roomId)),

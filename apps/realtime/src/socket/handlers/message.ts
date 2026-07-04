@@ -61,10 +61,15 @@ export function registerMessageHandlers(
         input.data,
       );
       if (!result.ok) {
-        respondOrEmit<MessageSendResponse>(socket, callback, {
-          error: result.error.message,
-          success: false,
-        });
+        respondOrEmit<MessageSendResponse>(
+          socket,
+          callback,
+          {
+            error: result.error.message,
+            success: false,
+          },
+          result.error.code,
+        );
         return;
       }
 
@@ -134,7 +139,10 @@ export function registerMessageHandlers(
         input.data.messageId,
         socket.data.userId,
       );
-      if (!currentMessage.ok || currentMessage.value.roomId !== input.data.roomId) {
+      if (
+        !currentMessage.ok ||
+        currentMessage.value.roomId !== input.data.roomId
+      ) {
         respondOrEmit<MessageReactionResponse>(socket, callback, {
           error: "Message not found.",
           success: false,

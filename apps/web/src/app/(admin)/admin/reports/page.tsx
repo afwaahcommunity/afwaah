@@ -24,19 +24,25 @@ export default function ReportsPage() {
     queryFn: () => api.admin.reports(),
   });
 
-  const [filter, setFilter] = useState<"all" | "open" | "resolved" | "dismissed">("open");
+  const [filter, setFilter] = useState<
+    "all" | "open" | "resolved" | "dismissed"
+  >("open");
   const [banTarget, setBanTarget] = useState<Report | null>(null);
 
-  const filtered = (data ?? []).filter((r) => filter === "all" || r.status === filter);
+  const filtered = (data ?? []).filter(
+    (r) => filter === "all" || r.status === filter,
+  );
 
   return (
     <AdminShell>
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Reports</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">Review reported content and take action.</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Review reported content and take action.
+          </p>
         </div>
-        <div className="flex gap-1">
+        <div className="grid grid-cols-4 gap-1 sm:flex">
           {(["open", "resolved", "dismissed", "all"] as const).map((f) => (
             <button
               key={f}
@@ -78,7 +84,9 @@ export default function ReportsPage() {
       <BanActionDialog
         open={!!banTarget}
         onClose={() => setBanTarget(null)}
-        target={banTarget?.context?.displayName ?? banTarget?.targetId ?? "user"}
+        target={
+          banTarget?.context?.displayName ?? banTarget?.targetId ?? "user"
+        }
         onSubmit={async (b) => {
           if (!banTarget) return;
           await api.admin.banUser({
