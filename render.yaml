@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: campus-chat-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/api check-types
+    preDeployCommand: pnpm db:migrate:node
+    startCommand: pnpm --filter @campus-chat/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: POSTGRES_POOL_MAX
+        value: "3"
+      - key: REDIS_ENABLE_READY_CHECK
+        value: "false"
+      - key: SESSION_COOKIE_NAME
+        value: campus_session
+      - key: ADMIN_COOKIE_NAME
+        value: campus_admin_session
+      - key: ADMIN_SESSION_TTL_SECONDS
+        value: "43200"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+
+  - type: web
+    name: campus-chat-realtime
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campus-chat/realtime check-types
+    startCommand: pnpm --filter @campus-chat/realtime start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: POSTGRES_POOL_MAX
+        value: "3"
+      - key: REDIS_ENABLE_READY_CHECK
+        value: "false"
+      - key: SESSION_COOKIE_NAME
+        value: campus_session
+      - key: PRESENCE_HEARTBEAT_SECONDS
+        value: "20"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
