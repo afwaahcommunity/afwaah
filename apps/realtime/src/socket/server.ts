@@ -24,10 +24,18 @@ export function createRealtimeServer(
   const startedAt = new Date();
   const handleHealth = createHealthHandler(clients, startedAt);
   const httpServer = createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
+    if (
+      (req.method === "GET" || req.method === "HEAD") &&
+      req.url === "/health"
+    ) {
       handleHealth(req, res).catch((error) => {
         console.error("Realtime health check failed", error);
-        sendJson(res, 503, { status: "error" });
+        sendJson(
+          res,
+          503,
+          { status: "error" },
+          { sendBody: req.method !== "HEAD" },
+        );
       });
       return;
     }
